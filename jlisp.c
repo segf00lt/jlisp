@@ -145,7 +145,9 @@ char *Expr_kind_debug[] = {
 typedef enum Token_kind Token_kind;
 typedef struct Token Token;
 typedef enum Expr_kind Expr_kind;
+typedef struct Expr_list Expr_list;
 typedef struct Expr Expr;
+typedef struct VM VM;
 typedef unsigned long Expr_ref;
 typedef struct Lexer Lexer;
 typedef struct Debug_info Debug_info;
@@ -168,19 +170,25 @@ struct Token {
 	};
 };
 
+struct Expr_list {
+	Expr_ref head;
+	Expr_ref tail;
+};
+
 struct Expr {
 	Expr_kind kind;
 	union {
-		struct {
-			Expr_ref head;
-			Expr_ref tail;
-		} list;
+		Expr_list list;
 		char *symbol;
 		char *string;
 		bool boolean;
 		long integer;
 		double real;
 	};
+};
+
+struct VM {
+	Array(Expr_ref) stack;
 };
 
 struct Lexer {
@@ -194,6 +202,7 @@ struct Lexer {
 
 Lexer lexer;
 Pool strpool;
+VM vm;
 Array(Expr) expr_arr;
 Map(Expr_ref) symbol_table;
 
@@ -428,6 +437,29 @@ void parse(void) {
 }
 
 void eval() {
+	for(size_t i = 0; i < arrlen(expr_arr); ++i) {
+		fprintf(stderr, "EXPR %zu\nkind: %s\n", i, Expr_kind_debug[expr_arr[i].kind]);
+		switch(expr_arr[i].kind) {
+		case E_LIST:
+			fprintf(stderr, "head: %lu\ntail: %lu\n\n", expr_arr[i].list.head, expr_arr[i].list.tail);
+			break;
+		case E_SYMBOL:
+			fprintf(stderr, "symbol: %s\n\n", expr_arr[i].symbol);
+			break;
+		case E_STRING:
+			fprintf(stderr, "string: %s\n\n", expr_arr[i].string);
+			break;
+		case E_BOOLEAN:
+			fprintf(stderr, "boolean: %s\n\n", (expr_arr[i].boolean) ? "true" : "false");
+			break;
+		case E_INTEGER:
+			fprintf(stderr, "integer: %li\n\n", expr_arr[i].integer);
+			break;
+		case E_REAL:
+			fprintf(stderr, "real: %lf\n\n", expr_arr[i].real);
+			break;
+		}
+	}
 }
 
 int main(int argc, char **argv) {
@@ -443,31 +475,12 @@ int main(int argc, char **argv) {
 	init_lexer(&lexer, src);
 	while(!lexer.eof)
 		parse();
-	for(size_t i = 0; i < arrlen(expr_arr); ++i) {
-		printf("EXPR %zu\nkind: %s\n", i, Expr_kind_debug[expr_arr[i].kind]);
-		switch(expr_arr[i].kind) {
-		case E_LIST:
-			printf("head: %lu\ntail: %lu\n\n", expr_arr[i].list.head, expr_arr[i].list.tail);
-			break;
-		case E_SYMBOL:
-			printf("symbol: %s\n\n", expr_arr[i].symbol);
-			break;
-		case E_STRING:
-			printf("string: %s\n\n", expr_arr[i].string);
-			break;
-		case E_BOOLEAN:
-			printf("boolean: %s\n\n", (expr_arr[i].boolean) ? "true" : "false");
-			break;
-		case E_INTEGER:
-			printf("integer: %li\n\n", expr_arr[i].integer);
-			break;
-		case E_REAL:
-			printf("real: %lf\n\n", expr_arr[i].real);
-			break;
-		}
-	}
+	eval();
 
-	arrfree(expr_arr);
+	if(expr_arr)
+		arrfree(expr_arr);
+	if(symbol_table)
+		hmfree(symbol_table);
 	pool_free(&strpool);
 	fmapclose(&file);
 	return 0;
