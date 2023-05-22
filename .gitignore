@@ -1,0 +1,17 @@
+util.h
+*.seer
+*.log
+*.bin
+test.c
+test/bin/*
+*.vim
+lib/link/**
+lib/include/**
+etc
+tags
+vgcore*
+*.o
+*.a
+*.out
+*.exrc
+*.pdf
