@@ -16,3 +16,4 @@ vgcore*
 *.exrc
 *.pdf
 jlisp
+.vscode
